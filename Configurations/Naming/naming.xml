@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<config-element id="725f6580-2bf0-443f-a9dc-9019e8ed019b" version="0.0.0">
+  <display-name><![CDATA[naming]]></display-name>
+  <atts>
+    <att name="MXTLTPPENT" type="string" read-only="false">
+      <value encoded="n"><![CDATA[002]]></value>
+    </att>
+  </atts>
+</config-element>
