@@ -1,0 +1,48 @@
+formatVersion: 1
+inputs:
+  loc:
+    type: string
+    title: Ubicacion
+    enum:
+      - Tultitlan
+      - Sperto
+  app:
+    type: string
+    minLength: 1
+    maxLength: 3
+    description: Caracteres descriptores de la aplicacion
+    default: app
+    pattern: '[a-z]+'
+  size:
+    type: string
+    title: VM Size
+    enum:
+      - chico
+      - mediano
+      - grande
+    default: chico
+    description: VM Size
+resources:
+  Windows:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: windows
+      loc: '${input.loc}'
+      app: '${input.app}'
+      flavor: '${input.size}'
+      networks:
+        - network: '${resource.Network1.id}'
+          assignment: static
+      tags:
+        - key: vramanaged
+          value: 'true'
+      constraints:
+        - tag: 'env:cloudIT'
+        - tag: '${"loc:" + input.loc}'
+  Network1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'env:cloudIT'
+        - tag: '${"loc:" + input.loc}'
