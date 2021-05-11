@@ -1,0 +1,85 @@
+formatVersion: 1
+inputs:
+  loc:
+    type: string
+    title: Ubicacion
+    enum:
+      - Tultitlan
+      - Sperto
+  name:
+    type: string
+  App:
+    type: string
+    minLength: 1
+    maxLength: 3
+    description: Caracteres descriptores de la aplicacion
+    default: app
+    pattern: '[a-z]+'
+  ssh_user:
+    type: string
+    title: Usuario SSH
+    default: sshuser
+    minLength: 1
+    maxLength: 15
+    pattern: '[a-zA-Z_-]+'
+  ssh:
+    type: string
+    title: SSH Key
+  password:
+    type: string
+    title: password
+  size:
+    type: string
+    title: VM Size
+    enum:
+      - chico
+      - mediano
+      - grande
+    default: chico
+    description: VM Size
+resources:
+  Linux:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: centOS
+      name: '${input.name}'
+      flavor: '${input.size}'
+      networks:
+        - network: '${resource.Network1.id}'
+          assignment: static
+      tags:
+        - key: vramanaged
+          value: 'true'
+      constraints:
+        - tag: 'env:cloudIT'
+        - tag: '${"loc:" + input.loc}'
+      cloudConfig: |
+        hostname: ${resource.Linux.name}
+        ssh_pwauth: yes
+        chpasswd:
+          list: |
+            ${input.ssh_user}:${input.password}
+          expire: false
+        users:
+          - default
+          - name: ${input.ssh_user}
+            passwd: ${input.password}
+            lock_passwd: false
+            sudo: ['ALL=(ALL) NOPASSWD:ALL']
+            groups: wheel, sudo, admin
+            shell: '/bin/bash'
+          - name: ${input.ssh_user}
+            ssh_authorized_keys:
+              - ${input.ssh}
+            sudo: ['ALL=(ALL) NOPASSWD:ALL']
+            groups: [wheel, sudo, admin]
+            shell: '/bin/bash'
+        runcmd:
+          - systemctl restart sshd
+  Network1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'env:cloudIT'
+        - tag: '${"loc:" + input.loc}'
