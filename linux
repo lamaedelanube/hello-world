@@ -6,8 +6,6 @@ inputs:
     enum:
       - Tultitlan
       - Sperto
-  name:
-    type: string
   App:
     type: string
     minLength: 1
@@ -41,8 +39,9 @@ resources:
   Linux:
     type: Cloud.vSphere.Machine
     properties:
+      app: '${input.App}'
+      loc: '${input.loc == "Tultitlan" ? "TLT" : "SP"}'
       image: centOS
-      name: '${input.name}'
       flavor: '${input.size}'
       networks:
         - network: '${resource.Network1.id}'
@@ -54,7 +53,6 @@ resources:
         - tag: 'env:cloudIT'
         - tag: '${"loc:" + input.loc}'
       cloudConfig: |
-        hostname: ${resource.Linux.name}
         ssh_pwauth: yes
         chpasswd:
           list: |
