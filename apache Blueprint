@@ -1,0 +1,111 @@
+formatVersion: 1
+inputs:
+  loc:
+    type: string
+    title: Ubicacion
+    enum:
+      - Tultitlan
+      - Sperto
+  App:
+    type: string
+    minLength: 1
+    maxLength: 3
+    description: Caracteres descriptores de la aplicacion
+    default: app
+    pattern: '[A-Z]+'
+  ssh_user:
+    type: string
+    title: Usuario SSH
+    default: sshuser
+    minLength: 1
+    maxLength: 15
+    pattern: '[a-zA-Z_-]+'
+  ssh:
+    type: string
+    title: SSH Key
+  password:
+    type: string
+    title: password
+    encrypted: true
+    default: Password123
+  size:
+    type: string
+    title: VM Size
+    enum:
+      - chico
+      - mediano
+      - grande
+    default: chico
+    description: VM Size
+  cantidad:
+    type: integer
+    minimum: 1
+    maximum: 4
+    description: Numero de Web Servers
+    default: 1
+    title: Cantidad
+resources:
+  Cloud_NSX_LoadBalancer_1:
+    type: Cloud.NSX.LoadBalancer
+    properties:
+      routes:
+        - protocol: HTTP
+          port: '80'
+          instanceProtocol: HTTP
+          instancePort: '80'
+      network: '${resource.Network1.id}'
+      instances: '${resource.Linux[*].id}'
+  Linux:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: centOS
+      app: '${input.App}'
+      loc: '${input.loc == "Tultitlan" ? "TLT" : "SP"}'
+      flavor: '${input.size}'
+      count: '${input.cantidad}'
+      networks:
+        - network: '${resource.Network1.id}'
+          assignment: static
+      tags:
+        - key: vramanaged
+          value: 'true'
+      constraints:
+        - tag: 'env:cloudIT'
+        - tag: '${"loc:" + input.loc}'
+      cloudConfig: |
+        hostname: ${resource.Linux.name}
+        ssh_pwauth: yes
+        chpasswd:
+          list: |
+            ${input.ssh_user}:${input.password}
+          expire: false
+        repo_update: true
+        repo_upgrade: all
+        packages:
+          - httpd
+        users:
+          - default
+          - name: ${input.ssh_user}
+            passwd: ${input.password}
+            lock_passwd: false
+            sudo: ['ALL=(ALL) NOPASSWD:ALL']
+            groups: wheel, sudo, admin
+            shell: '/bin/bash'
+          - name: ${input.ssh_user}
+            ssh_authorized_keys:
+              - ${input.ssh}
+            sudo: ['ALL=(ALL) NOPASSWD:ALL']
+            groups: [wheel, sudo, admin]
+            shell: '/bin/bash'
+        runcmd:
+          - systemctl restart sshd
+          - systemctl restart httpd
+          - firewall-cmd --zone=public --permanent --add-service=http
+          - firewall-cmd --reload
+  Network1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'env:cloudIT'
+        - tag: '${"loc:" + input.loc}'
